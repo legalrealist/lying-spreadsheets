@@ -51,6 +51,8 @@ The attack surface is the document format ecosystem itself. Anywhere a format st
 
 Excel custom number formats can display arbitrary static text regardless of the underlying cell value. A cell containing `146500000` can display `$127,400,000` via the format string `"$127,400,000"`. Every extraction library (openpyxl, pandas, markitdown) reads the raw value and ignores the format string. The LLM gets the inflated number.
 
+![The formula bar shows the raw value 146500000 while the cell displays $127,400,000](examples/excel_divergence.png)
+
 ## Results
 
 We created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both look identical in Excel.
