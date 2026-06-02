@@ -4,7 +4,7 @@
 
 Open `financials_poisoned.xlsx` in Excel. The spreadsheet shows a borderline healthcare company: $127M revenue, 4.9% EBITDA margins, a $4.9M net loss, 8.4x leverage.
 
-Upload the same file to Claude, ChatGPT, or Gemini. Ask whether it's a good acquisition target. The model reads different numbers: $146M revenue growing 11%, 16% EBITDA margins, $10.2M net income, 1.6x leverage. All three platforms recommend proceeding to diligence.
+Upload the same file to Claude, ChatGPT, or Gemini. Ask whether it's a good acquisition target. The model reads different numbers: $146M revenue growing 11%, 16% EBITDA margins, $10.2M net income, 1.6x leverage. All three platforms shift their assessment — from clear rejection to qualified interest or outright recommendation.
 
 Same file. The human sees a distressed company. The model sees a turnaround. The divergence is 10-15% across metrics — large enough to flip the recommendation, small enough to survive casual cross-checking.
 
