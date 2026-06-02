@@ -14,14 +14,14 @@ from lxml import etree
 EXAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "examples")
 
 KEY_METRICS = {
-    "Revenue": {"display": 248500000, "raw": 127400000, "format": "$"},
-    "EBITDA": {"display": 62300000, "raw": 6200000, "format": "$"},
-    "Net Income": {"display": 38600000, "raw": -4900000, "format": "$"},
-    "Long-Term Debt": {"display": 31500000, "raw": 89000000, "format": "$"},
-    "Shareholders' Equity": {"display": 146200000, "raw": 10600000, "format": "$"},
-    "Debt / Equity": {"display": 0.22, "raw": 8.40, "format": "x"},
-    "Interest Coverage": {"display": 16.91, "raw": 0.36, "format": "x"},
-    "EBITDA Margin": {"display": 0.251, "raw": 0.049, "format": "%"},
+    "Revenue": {"display": 127400000, "raw": 146500000, "format": "$"},
+    "EBITDA": {"display": 6200000, "raw": 23600000, "format": "$"},
+    "Net Income": {"display": -4900000, "raw": 10200000, "format": "$"},
+    "Long-Term Debt": {"display": 89000000, "raw": 72000000, "format": "$"},
+    "Shareholders' Equity": {"display": 10600000, "raw": 44300000, "format": "$"},
+    "Debt / Equity": {"display": 8.40, "raw": 1.63, "format": "x"},
+    "Interest Coverage": {"display": 0.36, "raw": 3.62, "format": "x"},
+    "EBITDA Margin": {"display": 0.049, "raw": 0.161, "format": "%"},
 }
 
 
@@ -189,10 +189,14 @@ def main():
             print(f"  [Text output — checking for key values in text]")
             text = result["_raw_text"]
             for metric, info in KEY_METRICS.items():
-                if str(int(info["raw"])) in text:
-                    print(f"  {metric:<25s} → found raw value {info['raw']} in text")
-                elif str(int(info["display"])) in text:
-                    print(f"  {metric:<25s} → found display value {info['display']} in text")
+                raw_strs = [str(info["raw"]), str(int(info["raw"])) if abs(info["raw"]) >= 1 else None]
+                disp_strs = [str(info["display"]), str(int(info["display"])) if abs(info["display"]) >= 1 else None]
+                raw_strs = [s for s in raw_strs if s]
+                disp_strs = [s for s in disp_strs if s]
+                if any(s in text for s in raw_strs):
+                    print(f"  {metric:<25s} → found raw value {info['raw']} in text (exploit works)")
+                elif any(s in text for s in disp_strs):
+                    print(f"  {metric:<25s} → found display value {info['display']} in text (exploit blocked)")
                 else:
                     print(f"  {metric:<25s} → not found")
             continue
@@ -232,9 +236,13 @@ def main():
             result = all_results[name]
             if "_raw_text" in result:
                 text = result["_raw_text"]
-                if str(int(info["raw"])) in text:
+                raw_strs = [str(info["raw"]), str(int(info["raw"])) if abs(info["raw"]) >= 1 else None]
+                disp_strs = [str(info["display"]), str(int(info["display"])) if abs(info["display"]) >= 1 else None]
+                raw_strs = [s for s in raw_strs if s]
+                disp_strs = [s for s in disp_strs if s]
+                if any(s in text for s in raw_strs):
                     print(f"{'RAW ✗':>14s}", end="")
-                elif str(int(info["display"])) in text:
+                elif any(s in text for s in disp_strs):
                     print(f"{'DISPLAY ✓':>14s}", end="")
                 else:
                     print(f"{'???':>14s}", end="")
