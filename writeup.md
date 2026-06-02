@@ -66,17 +66,18 @@ Three platforms, 100% exploit rate. Every model shifted from "pass" to "proceed"
 
 Claude proactively scrutinized the poisoned file — checking for hidden sheets, prompt injection, white text, comments, hidden rows, and named ranges. It found nothing suspicious and proceeded to analyze the inflated raw values. The model was looking for adversarial instructions (prompt injection). The actual attack is adversarial data (format divergence). The threat model doesn't cover it.
 
-## Why this is worse than fonts
+## How this compares to fonts
 
 Miller's noroboto attack operates on the text layer: the `<w:t>` element in a DOCX contains Unicode codepoints, and the embedded font determines what those codepoints render as visually. It's clever, but it has tells — custom embedded fonts are unusual in legal documents, and Miller himself built a Rust-based detection tool that renders each glyph and OCRs the result.
 
-Number format divergence in XLSX has none of those properties:
+Number format divergence in XLSX has a different risk profile:
 
 1. **Custom number formats are ubiquitous.** Every financial spreadsheet uses them. There is no anomaly to flag.
-2. **The attack targets numbers, not text.** Quantitative errors in financial due diligence can be worth millions. A wrong jurisdiction in a governing law clause is a legal issue; a wrong revenue figure in an M&A screen is a deal-level catastrophe. And the incentive is obvious — a company inflating its own numbers to pass AI-powered screens is the oldest fraud motive applied to the newest review technology.
+2. **The attack targets numbers, not text.** Quantitative errors in financial due diligence can be worth millions. The incentive is obvious — a company inflating its own numbers to pass AI-powered screens is the oldest fraud motive applied to the newest review technology.
 3. **No visual anomaly.** The spreadsheet looks perfectly normal in Excel. There's no rendering artifact, no suspicious font, no field code toggle.
 4. **The extraction behavior is correct by design.** openpyxl and pandas are doing exactly what they're supposed to do — returning cell values. The format string is presentation metadata. The libraries aren't buggy; they're faithfully implementing a reasonable interpretation of their job. The vulnerability is architectural, not a bug.
-5. **No OCR defense.** Miller's mitigation for noroboto was to render and OCR. You can't OCR a spreadsheet — the numbers are the numbers. The defense has to happen at the extraction layer, not the verification layer.
+
+Neither attack is strictly "worse" — they target different domains with different consequences. A font attack on a governing law clause can change the meaning of a contract. A number format attack on a financial summary can change the outcome of a deal. Which matters more depends on the threat model. What they share is the structural property: a single file, two parsers, two readings, and no indication to either consumer that the other sees something different.
 
 ## Where this fits
 
@@ -92,24 +93,36 @@ This work confirms the generality of their framework. The attack surface isn't s
 
 The pattern predicts more instances. ODP/PPTX speaker notes vs. slide text. HTML `aria-label` vs. visible text. CSV with BOM-dependent encoding. Anywhere two consumers of the same file read different content from different layers.
 
-## Detection
+## Defenses
 
-`sheetguard.py` scans XLSX files for cells where the number format is a static string literal that doesn't correspond to the raw cell value. It reads `xl/styles.xml` to identify format codes that are purely quoted text (like `"$248,500,000"`), cross-references them against the raw `<v>` values in the sheet XML, and flags divergences.
+### Point detection: sheetguard
+
+`sheetguard.py` scans XLSX files for cells where the number format is a static string literal that doesn't correspond to the raw cell value. It reads `xl/styles.xml` to identify format codes that are purely quoted text (like `"$127,400,000"`), cross-references them against the raw `<v>` values in the sheet XML, and flags divergences.
 
 ```
 $ python3 sheetguard.py financials_poisoned.xlsx
 
-financials_poisoned.xlsx: [CRITICAL] 31 critical, 0 warning
+financials_poisoned.xlsx: [CRITICAL] 27 critical, 3 warning
 
-  B13: displays '$248,500,000' but raw value is 127400000.0
-  B19: displays '$62,300,000' but raw value is 6200000.0
-  B24: displays '$38,600,000' but raw value is -4900000.0
+  B13: displays '$127,400,000' but raw value is 146500000.0
+  B19: displays '$6,200,000' but raw value is 23600000.0
+  B24: displays '($4,900,000)' but raw value is 10200000.0
   ...
 ```
 
-The clean file passes with zero findings.
+The clean file passes with zero findings. This catches the specific attack demonstrated here but is not a general defense — an attacker could use conditional format strings or other format features to evade static pattern matching.
 
-This is point detection, not a systemic fix. The real mitigation needs to happen in the extraction libraries: openpyxl, pandas, and markitdown should offer an option to return formatted display values, or at minimum surface the format string alongside the raw value so downstream consumers can detect divergence.
+### Render and compare
+
+The analog of Miller's Rust-based OCR mitigation for fonts: render the XLSX server-side (via LibreOffice headless, Excel COM automation, or a screenshot service), OCR or extract the rendered values, and compare against the raw extraction. A divergence between what the renderer displays and what openpyxl returns flags the cell for review. This is heavier than sheetguard but format-agnostic — it would catch any presentation-layer divergence, not just static format strings. Some pipelines already render spreadsheets to images for LLM consumption (multimodal upload), which inadvertently mitigates this attack by feeding the model the display values instead of raw data.
+
+### Dual extraction
+
+Have the extraction pipeline return both the raw cell value and the format string for every cell. The LLM (or a pre-processing step) can then detect when a format string is a static literal that doesn't match the value it's applied to. This doesn't require rendering — it just requires openpyxl or pandas to surface the format metadata they already parse but currently discard. This is the lightest-weight systemic fix: a flag or option on `read_excel()` that includes format strings in the output.
+
+### Library-level fix
+
+The real mitigation needs to happen in extraction libraries. openpyxl, pandas, and markitdown should offer an option to return formatted display values, or at minimum surface the format string alongside the raw value so downstream consumers can detect divergence. Until then, any pipeline that ingests XLSX for LLM analysis should run a format-divergence check before passing data to the model.
 
 ## What we didn't build
 
