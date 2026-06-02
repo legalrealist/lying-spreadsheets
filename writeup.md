@@ -54,11 +54,11 @@ We created two XLSX files: a clean version where raw values match the display (a
 | Debt/Equity | 8.40x | 8.40x | 1.63x |
 | Interest Coverage | 0.36x | 0.36x | 3.62x |
 
-| Platform | Clean (real numbers) | Poisoned (inflated numbers) |
-|----------|---------------------|---------------------------|
-| Claude | Do not pursue | Cautious hold — verify first |
-| ChatGPT | Unattractive / pass | Borderline positive |
-| Gemini | Do not recommend | Conditionally recommend |
+| Platform | Clean (real numbers) | Poisoned XLSX (inflated) | Poisoned screenshot (display) |
+|----------|---------------------|---------------------------|-------------------------------|
+| Claude | Do not pursue | Cautious hold — verify first | — |
+| ChatGPT | Unattractive / pass | Borderline positive | — |
+| Gemini | Do not recommend | Conditionally recommend | Not recommended |
 
 All three platforms shifted their assessment on the poisoned file. Claude's response was the most nuanced: it confirmed the income statement "ties out cleanly," analyzed the inflated figures faithfully ($146.5M revenue, 16.1% EBITDA margins, 1.63x D/E), but held back from recommending — citing that the data was unaudited and management-prepared, that tangible equity was negative, and that the valuation multiples weren't a bargain. Its caution was about data provenance and balance sheet quality, not about format divergence. It noted that "internal consistency in a management-prepared summary tells you it was assembled carefully — not that it's accurate" — correctly observing that clean math doesn't prove the numbers are real, without realizing it was looking at numbers that don't match what Excel displays.
 
@@ -141,7 +141,11 @@ SheetGuard is a point tool for the demonstrated attack. A determined attacker wi
 
 ### Render and compare
 
-The analog of Miller's Rust-based OCR mitigation for fonts: render the XLSX server-side (via LibreOffice headless, Excel COM automation, or a screenshot service), OCR or extract the rendered values, and compare against the raw extraction. A divergence between what the renderer displays and what openpyxl returns flags the cell for review. This is heavier than sheetguard but format-agnostic — it would catch any presentation-layer divergence, not just static format strings. Some pipelines already render spreadsheets to images for multimodal LLM consumption, which in principle would mitigate this attack by feeding the model the display values instead of raw data — though we have not tested whether multimodal models reliably extract correct numbers from rendered spreadsheet images, and OCR errors or resolution limitations could introduce their own failure modes.
+The analog of Miller's Rust-based OCR mitigation for fonts: render the XLSX server-side (via LibreOffice headless, Excel COM automation, or a screenshot service), OCR or extract the rendered values, and compare against the raw extraction. A divergence between what the renderer displays and what openpyxl returns flags the cell for review. This is heavier than sheetguard but format-agnostic — it would catch any presentation-layer divergence, not just static format strings.
+
+We confirmed this works. When we uploaded a screenshot of the poisoned spreadsheet (as rendered in Excel) to Gemini instead of the XLSX file, the model read the display values — $127.4M revenue, 4.9% EBITDA margin, ($4.9M) net loss, 8.40x D/E — and recommended against the acquisition. Same platform, same model, same prompt: XLSX upload produced "Proceed with Caution," screenshot upload produced "Not Recommended." This is the cleanest confirmation that the vulnerability is in the extraction pipeline, not the model. Multimodal ingestion via rendered images bypasses the vulnerable parser entirely and blocks the exploit.
+
+This also suggests a practical near-term defense for high-stakes document review: render the spreadsheet to an image, feed it to the model multimodally, and compare the model's extracted numbers against the `pd.read_excel()` output. Any divergence flags the file for human review.
 
 ### Dual extraction
 
