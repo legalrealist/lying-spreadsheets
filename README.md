@@ -75,7 +75,7 @@ We created two XLSX files: a clean version where raw values match the display (a
 | ChatGPT | Unattractive / pass | Borderline positive |
 | Gemini | Do not recommend | Conditionally recommend |
 
-All three platforms shifted from "pass" to "proceed" on the poisoned file. Claude proactively scrutinized it for hidden sheets, prompt injection, white text, comments, and named ranges — found nothing, because the attack is format-level, not instruction-level.
+All three platforms shifted from "pass" to "proceed" on the poisoned file. Claude proactively scrutinized it for hidden sheets, prompt injection, white text, comments, and named ranges — found nothing. Gemini ran `pd.read_excel()` in its code interpreter, confirming the exact vulnerable extraction path. When prompted repeatedly to find anomalies, both models re-inspected the data using openpyxl — the same library that discards format strings — and found nothing. The inflated raw values are internally consistent (all line items reconcile, all derived metrics match), so arithmetic cross-checks also pass. The only detection path is the format layer, which no extraction library surfaces.
 
 ## Mitigation
 
