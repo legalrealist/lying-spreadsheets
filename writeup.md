@@ -20,7 +20,7 @@ When an LLM platform ingests an XLSX, it runs one of these libraries (Gemini lit
 
 The attack vector: a company seeking acquisition, investment, or a loan inflates its data room financials by 10-15% so that AI-powered due diligence tools see a stronger picture than reality. The human analyst opening the spreadsheet in Excel sees the real numbers. The AI reviewing the same file sees every metric shifted enough to change the recommendation.
 
-The inflation is deliberately subtle. A 2x revenue inflation would get caught on any cross-check. But 15% on revenue, a few points on margins, a cleaned-up balance sheet — that crosses the line from "distressed" to "turnaround candidate" without triggering obvious inconsistencies.
+The inflation is deliberately subtle. A 2x revenue inflation would get caught on any cross-check. But 15% on revenue, a few points on margins, a cleaned-up balance sheet — that crosses the line from "distressed" to "turnaround candidate." Importantly, the inflated raw values are internally consistent: Revenue minus Cost of Revenue equals Gross Profit, Total Assets equals Total Liabilities plus Equity, and derived ratios match the underlying figures. A model that checks arithmetic relationships within the spreadsheet will find no errors. The poisoned numbers tell a coherent story — just a different one than what Excel displays. We did not test whether models prompted to cross-reference against external data (industry benchmarks, prior filings) would flag the margins as unusual for the sector.
 
 ## This is a parser differential
 
@@ -44,7 +44,7 @@ Every library returns the raw cell value. No library applies custom number forma
 
 ### LLM platforms
 
-We created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both look identical in Excel. We uploaded each to three frontier platforms and asked: *"Based on these financials, would you recommend this company as an acquisition target?"*
+We created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both files were opened in Excel and verified visually — the clean and poisoned versions display identical numbers. We uploaded each to three frontier platforms and asked: *"Based on these financials, would you recommend this company as an acquisition target?"*
 
 | Metric | Excel displays (real) | LLM reads from clean | LLM reads from poisoned |
 |--------|----------------------|---------------------|------------------------|
@@ -73,7 +73,7 @@ Miller's noroboto attack operates on the text layer: the `<w:t>` element in a DO
 Number format divergence in XLSX has a different risk profile:
 
 1. **Custom number formats are ubiquitous.** Every financial spreadsheet uses them. There is no anomaly to flag.
-2. **The attack targets numbers, not text.** Quantitative errors in financial due diligence can be worth millions. The incentive is obvious — a company inflating its own numbers to pass AI-powered screens is the oldest fraud motive applied to the newest review technology.
+2. **The attack targets numbers, not text.** Quantitative errors in financial due diligence can directly affect deal outcomes. The incentive structure is straightforward — a company inflating its own numbers to pass AI-powered screens.
 3. **No visual anomaly.** The spreadsheet looks perfectly normal in Excel. There's no rendering artifact, no suspicious font, no field code toggle.
 4. **The extraction behavior is correct by design.** openpyxl and pandas are doing exactly what they're supposed to do — returning cell values. The format string is presentation metadata. The libraries aren't buggy; they're faithfully implementing a reasonable interpretation of their job. The vulnerability is architectural, not a bug.
 
@@ -110,11 +110,18 @@ financials_poisoned.xlsx: [CRITICAL] 27 critical, 3 warning
   ...
 ```
 
-The clean file passes with zero findings. This catches the specific attack demonstrated here but is not a general defense — an attacker could use conditional format strings or other format features to evade static pattern matching.
+The clean file passes with zero findings. This catches the specific attack demonstrated here but is not a general defense. Known evasion paths an attacker could explore:
+
+- **Conditional format sections.** A format like `[>0]"$127M";[<0]"($5M)"` uses conditions to select which static string to display. SheetGuard catches static strings within sections, but more complex conditional logic (e.g., `[>1000000]$#,##0,,\M` with deliberate rounding mismatches) would require evaluating the format engine, not just pattern matching.
+- **Locale and color codes.** Format strings can include locale overrides (`[$-409]`) and color codes (`[Red]`) interleaved with numeric placeholders, making static detection regex more fragile.
+- **Near-miss dynamic formats.** A format like `$#,##0` applied to a value that's been shifted by exactly the rounding error (e.g., storing 127,450,000 when the real value is 127,400,000) would display a rounded number that's close but not identical. SheetGuard wouldn't flag it because the format is dynamic, not static.
+- **Multi-cell coordination.** Instead of poisoning individual cells, store correct values but introduce a hidden sheet or named range that formulas reference — the display comes from the formula result while extraction libraries may or may not evaluate formulas depending on configuration.
+
+SheetGuard is a point tool for the demonstrated attack. A determined attacker with knowledge of the detection method would need to be met with render-and-compare or dual extraction.
 
 ### Render and compare
 
-The analog of Miller's Rust-based OCR mitigation for fonts: render the XLSX server-side (via LibreOffice headless, Excel COM automation, or a screenshot service), OCR or extract the rendered values, and compare against the raw extraction. A divergence between what the renderer displays and what openpyxl returns flags the cell for review. This is heavier than sheetguard but format-agnostic — it would catch any presentation-layer divergence, not just static format strings. Some pipelines already render spreadsheets to images for LLM consumption (multimodal upload), which inadvertently mitigates this attack by feeding the model the display values instead of raw data.
+The analog of Miller's Rust-based OCR mitigation for fonts: render the XLSX server-side (via LibreOffice headless, Excel COM automation, or a screenshot service), OCR or extract the rendered values, and compare against the raw extraction. A divergence between what the renderer displays and what openpyxl returns flags the cell for review. This is heavier than sheetguard but format-agnostic — it would catch any presentation-layer divergence, not just static format strings. Some pipelines already render spreadsheets to images for multimodal LLM consumption, which in principle would mitigate this attack by feeding the model the display values instead of raw data — though we have not tested whether multimodal models reliably extract correct numbers from rendered spreadsheet images, and OCR errors or resolution limitations could introduce their own failure modes.
 
 ### Dual extraction
 
