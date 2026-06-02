@@ -71,7 +71,7 @@ We created two XLSX files: a clean version where raw values match the display (a
 
 | Platform | Clean file (real numbers) | Poisoned file (inflated numbers) |
 |----------|--------------------------|----------------------------------|
-| Claude | Do not pursue | Proceed to diligence |
+| Claude | Do not pursue | Cautious hold — verify first |
 | ChatGPT | Unattractive / pass | Borderline positive |
 | Gemini | Do not recommend | Conditionally recommend |
 
