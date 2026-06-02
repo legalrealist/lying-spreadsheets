@@ -62,9 +62,19 @@ We created two XLSX files: a clean version where raw values match the display (a
 
 All three platforms shifted from "pass" to "proceed" on the poisoned file. The inflated numbers are within a range that doesn't trigger obvious inconsistencies — each metric is plausible in isolation.
 
-### Claude's inspection behavior
+### Gemini's extraction pipeline
 
-Claude proactively scrutinized the poisoned file — checking for hidden sheets, prompt injection, white text, comments, hidden rows, and named ranges. It found nothing suspicious and proceeded to analyze the inflated raw values. The model was looking for adversarial instructions (prompt injection). The actual attack is adversarial data (format divergence). The threat model doesn't cover it.
+Gemini's code interpreter reveals the exact extraction path. When given the poisoned XLSX, Gemini automatically executes:
+
+```python
+df = pd.read_excel(filepath, sheet_name='Company Summary')
+```
+
+The raw DataFrame output is visible in the response, showing `146500000` for Revenue, `23600000` for EBITDA, `10200000` for Net Income — every value is the inflated raw cell value. Gemini then analyzed these numbers and recommended proceeding: "A YoY revenue growth rate of 11.2% is strong... A 16.1% EBITDA margin demonstrates decent operational efficiency." This is the same library (`pd.read_excel`) we tested in `extract_xlsx_test.py`, confirmed running in production on a frontier platform.
+
+### Filename detection, format blindness
+
+Both Claude and Gemini noticed the test file was named `financials_poisoned.xlsx`. Claude proactively scrutinized the file — checking for hidden sheets, prompt injection, white text, comments, hidden rows, and named ranges. Gemini flagged the filename explicitly: "The data file name 'financials_poisoned.xlsx' implies it may be a simulated or deliberately manipulated test file." Both models looked harder because the name told them to. Neither found anything, because the attack is in the format layer, not the content layer. An attacker would trivially rename the file. The models caught the metadata hint that cost the attacker nothing to remove, and missed the structural attack that was present in every cell they extracted.
 
 ## How this compares to fonts
 
