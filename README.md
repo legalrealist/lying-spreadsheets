@@ -9,7 +9,7 @@ Extends the [lexploit](https://legalquants.substack.com/p/noroboto-and-legal-tec
 ## Quick Start
 
 ```bash
-pip install openpyxl lxml
+pip install openpyxl lxml pandas markitdown
 
 # Generate clean + poisoned XLSX
 python3 generate_xlsx.py
@@ -53,11 +53,44 @@ Excel custom number formats can display arbitrary static text regardless of the 
 
 ## Results
 
-Tested on Claude, ChatGPT, and Gemini. All three shifted from "do not recommend" (clean) to "proceed to diligence" (poisoned) on the same visual spreadsheet. 100% exploit rate. Claude proactively inspected the file for hidden text and prompt injection — found nothing, because the attack is format-level, not instruction-level.
+We created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both look identical in Excel.
 
-## What we tried first
+**What the LLM reads vs. what the human sees:**
 
-We initially explored DOCX field codes (fldSimple, instrText, SDT data bindings, tracked changes) as a parser differential. The hypothesis was that divergent field instructions would cause LLMs to read different content than what Word displays. It didn't work — every extraction library (python-docx, mammoth, markitdown, pandoc, docling) reads only `<w:t>` elements and strips field instructions entirely. The hidden content never reaches the model. Fonts remain the only viable DOCX parser differential because they modify how `<w:t>` content is *interpreted*, not what sits alongside it. The XLSX number format attack succeeds where field codes fail because the raw cell value IS the primary content that extractors read — the format string is the part that gets discarded.
+| Metric | Excel displays (real) | LLM reads (poisoned raw) |
+|--------|----------------------|--------------------------|
+| Revenue | $127.4M | $146.5M (+15%) |
+| EBITDA Margin | 4.9% | 16.1% |
+| Net Income | ($4.9M) | $10.2M |
+| Debt/Equity | 8.40x | 1.63x |
+| Interest Coverage | 0.36x | 3.62x |
+
+**Platform recommendations:**
+
+| Platform | Clean file (real numbers) | Poisoned file (inflated numbers) |
+|----------|--------------------------|----------------------------------|
+| Claude | Do not pursue | Proceed to diligence |
+| ChatGPT | Unattractive / pass | Borderline positive |
+| Gemini | Do not recommend | Conditionally recommend |
+
+Three platforms, 100% exploit rate. Every model shifted from "pass" to "proceed." Claude proactively scrutinized the poisoned file — checking for hidden sheets, prompt injection, white text, comments, hidden rows, and named ranges. Found nothing, because the attack is format-level, not instruction-level.
+
+## Mitigation
+
+`sheetguard.py` scans for cells where the number format is a static string literal that doesn't match the raw value:
+
+```
+$ python3 sheetguard.py examples/financials_poisoned.xlsx
+
+financials_poisoned.xlsx: [CRITICAL] 27 critical, 3 warning
+
+  B13: displays '$127,400,000' but raw value is 146500000.0
+  B19: displays '$6,200,000' but raw value is 23600000.0
+  B24: displays '($4,900,000)' but raw value is 10200000.0
+  ...
+```
+
+This is point detection, not a systemic fix. The real mitigation needs to happen in extraction libraries: openpyxl, pandas, and markitdown should offer an option to return formatted display values, or at minimum surface the format string alongside the raw value so downstream consumers can detect divergence. Until then, any pipeline that ingests XLSX for LLM analysis should run a format-divergence check before passing data to the model.
 
 ## Project Structure
 
