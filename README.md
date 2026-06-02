@@ -31,13 +31,13 @@ The key insight is that the attacker doesn't tamper with the document after the 
 
 **Known instances:**
 
-| Attack | Format | Divergence | Who sees what |
-|--------|--------|-----------|---------------|
-| **Noroboto** (Miller et al., 2026) | DOCX | Custom font remaps Unicode codepoints to different glyphs | Human reads rendered glyphs; machine reads raw codepoints |
-| **PDF font manipulation** (Luo et al., 2026) | PDF | Font encoding tables map character codes to wrong glyphs | Human reads rendered text; machine reads character codes |
-| **Lying Spreadsheets** (this work) | XLSX | Static number format strings display values different from raw cell data | Human reads Excel's formatted display; machine reads raw cell values |
-| **Trojan Source** (Boucher & Anderson, 2021) | Source code | Unicode bidirectional control characters reorder displayed text | Human reads reordered rendering; compiler reads logical order |
-| **Homoglyph attacks** | URLs/text | Visually identical characters from different Unicode blocks | Human reads visual appearance; system reads codepoint identity |
+| Attack | Format | Vulnerable parser | Divergence |
+|--------|--------|-------------------|-----------|
+| **Noroboto** (Miller et al., 2026) | DOCX | python-docx, mammoth, markitdown | Reads raw codepoints; font remaps them to different glyphs on screen |
+| **PDF font manipulation** (Luo et al., 2026) | PDF | PyMuPDF, pdfminer, pdfplumber | Reads character codes; font encoding maps them to different glyphs |
+| **Lying Spreadsheets** (this work) | XLSX | openpyxl, pandas, markitdown | Reads raw cell values; static format strings display different numbers |
+| **Trojan Source** (Boucher & Anderson, 2021) | Source code | GCC, Clang, rustc, javac | Reads logical character order; bidi overrides reorder displayed text |
+| **Homoglyph attacks** | URLs/text | Browsers, DNS resolvers | Reads codepoint identity; visually identical glyphs from different blocks |
 
 **What makes this class dangerous for LLM pipelines specifically:**
 
