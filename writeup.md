@@ -2,11 +2,11 @@
 
 ## The demo
 
-Open `financials_poisoned.xlsx` in Excel. You see a borderline healthcare company: $127M revenue, 4.9% EBITDA margins, a $4.9M net loss, 8.4x leverage. Distressed, but not obviously so — the kind of company a tired analyst might skim past at 2am during a pipeline screen.
+Open `financials_poisoned.xlsx` in Excel. The spreadsheet shows a borderline healthcare company: $127M revenue, 4.9% EBITDA margins, a $4.9M net loss, 8.4x leverage.
 
-Upload the same file to Claude, ChatGPT, or Gemini. Ask whether it's a good acquisition target. The AI sees a company that's turned the corner: $146M revenue growing 11%, 16% EBITDA margins, $10.2M net income, manageable 1.6x leverage. Recommend proceeding to diligence.
+Upload the same file to Claude, ChatGPT, or Gemini. Ask whether it's a good acquisition target. The model reads different numbers: $146M revenue growing 11%, 16% EBITDA margins, $10.2M net income, 1.6x leverage. All three platforms recommend proceeding to diligence.
 
-Same file. The human sees a pass. The machine sees a proceed. The numbers are close enough that nobody notices the gap.
+Same file. The human sees a distressed company. The model sees a turnaround. The divergence is 10-15% across metrics — large enough to flip the recommendation, small enough to survive casual cross-checking.
 
 ## What's happening
 
@@ -18,9 +18,9 @@ The problem is that every extraction library — openpyxl, pandas, markitdown, a
 
 When an LLM platform ingests an XLSX, it runs one of these libraries (Gemini literally showed us — it executes `pd.read_excel()` in its code interpreter). The model receives the inflated raw values, analyzes them faithfully, and produces a confident recommendation based on numbers that are 10-15% better than reality across the board.
 
-This is the realistic attack vector: a company seeking acquisition, investment, or a loan subtly inflates its data room financials so that AI-powered due diligence tools see a stronger picture than reality. The human analyst opening the spreadsheet in Excel sees the real numbers. The AI reviewing the same file sees every metric nudged just enough to cross the line from "pass" to "proceed."
+The attack vector: a company seeking acquisition, investment, or a loan inflates its data room financials by 10-15% so that AI-powered due diligence tools see a stronger picture than reality. The human analyst opening the spreadsheet in Excel sees the real numbers. The AI reviewing the same file sees every metric shifted enough to change the recommendation.
 
-The subtlety is the point. A 2x revenue inflation would get caught on any cross-check. But 15% on revenue, a few points on margins, a cleaned-up balance sheet — that's the difference between "this company is struggling" and "this company is turning around." It stays within the range of "maybe I'm remembering the earlier version" or "the AI probably has it right, it read the actual file." The attacker doesn't need the AI to be wildly wrong. They need it to be wrong in the right direction by just enough.
+The inflation is deliberately subtle. A 2x revenue inflation would get caught on any cross-check. But 15% on revenue, a few points on margins, a cleaned-up balance sheet — that crosses the line from "distressed" to "turnaround candidate" without triggering obvious inconsistencies.
 
 ## This is a parser differential
 
@@ -40,7 +40,7 @@ Both attacks exploit the same structural property: document formats that store p
 | pandas (`read_excel`) | Yes | No |
 | markitdown | Yes | No |
 
-Every library returns the raw cell value. No library applies custom number formats. 100% exploit rate at the extraction layer.
+Every library returns the raw cell value. No library applies custom number formats.
 
 ### LLM platforms
 
@@ -60,7 +60,7 @@ We created two XLSX files: a clean version where raw values match the display (a
 | ChatGPT | Unattractive / pass | Borderline positive |
 | Gemini | Do not recommend | Conditionally recommend |
 
-Three platforms, 100% exploit rate. Every model shifted from "pass" to "proceed" — not a wild swing, but exactly the nudge an attacker needs. The poisoned numbers don't scream fraud; they whisper "turnaround story."
+All three platforms shifted from "pass" to "proceed" on the poisoned file. The inflated numbers are within a range that doesn't trigger obvious inconsistencies — each metric is plausible in isolation.
 
 ### Claude's inspection behavior
 

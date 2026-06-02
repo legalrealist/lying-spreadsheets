@@ -73,7 +73,7 @@ We created two XLSX files: a clean version where raw values match the display (a
 | ChatGPT | Unattractive / pass | Borderline positive |
 | Gemini | Do not recommend | Conditionally recommend |
 
-Three platforms, 100% exploit rate. Every model shifted from "pass" to "proceed." Claude proactively scrutinized the poisoned file — checking for hidden sheets, prompt injection, white text, comments, hidden rows, and named ranges. Found nothing, because the attack is format-level, not instruction-level.
+All three platforms shifted from "pass" to "proceed" on the poisoned file. Claude proactively scrutinized it for hidden sheets, prompt injection, white text, comments, and named ranges — found nothing, because the attack is format-level, not instruction-level.
 
 ## Mitigation
 
