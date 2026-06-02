@@ -103,7 +103,10 @@ This is point detection, not a systemic fix. The real mitigation needs to happen
 ├── writeup.md             # Full research write-up
 ├── examples/
 │   ├── financials_clean.xlsx
-│   └── financials_poisoned.xlsx
+│   ├── financials_poisoned.xlsx
+│   └── excel_divergence.png
 └── results/
-    └── xlsx_results.md
+    ├── xlsx_results.md
+    ├── claude_new_output.md
+    └── gemini_new_output.md
 ```
