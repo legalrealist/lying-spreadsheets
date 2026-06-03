@@ -4,7 +4,7 @@ XLSX number format divergence as a parser differential against LLM financial rev
 
 A company poisons its data room spreadsheet so that Excel displays the real (weak) financials while the raw cell values — which every extraction library reads — tell a subtly better story. The AI recommends proceeding. The human saw a pass. Same file.
 
-Extends the [lexploit](https://legalquants.substack.com/p/noroboto-and-legal-techs-mythos-moment) framework (Miller, Ng, Petrenas & Valkov, 2026) from fonts/text to numbers/spreadsheets.
+A [parser differential](https://trojansource.codes/) attack — the same class as Trojan Source (Boucher & Anderson, 2021) and [noroboto](https://legalquants.substack.com/p/noroboto-and-legal-techs-mythos-moment) (Miller et al., 2026) — applied to XLSX number formats and tested end-to-end on production LLM platforms.
 
 ## Quick Start
 

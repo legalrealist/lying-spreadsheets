@@ -24,11 +24,11 @@ The inflation is deliberately subtle. A 2x revenue inflation would get caught on
 
 ## This is a parser differential
 
-Drew Miller and the LegalQuants Red Team coined the term "lexploit" for document-fidelity attacks against legal tech pipelines, and demonstrated the first instance with noroboto — a font that maps Unicode codepoints to different glyphs, causing humans and machines to read different text from the same DOCX. Miller framed this correctly: the vulnerability lives in the parser, not the model. The model can only analyze what the extraction pipeline gives it.
+A parser differential attack exploits the gap between two consumers of the same file that read different content from different layers. The attack class is well-established: Boucher and Anderson demonstrated it in 2021 with Trojan Source (CVE-2021-42574), where Unicode bidirectional overrides cause compilers and human readers to see different source code from the same file. Homoglyph attacks predate that. Guha, Henderson, and Zambrano (2022) established the academic foundation for these vulnerabilities in legal tech pipelines. Miller and the LegalQuants Red Team applied the concept to LLM document review with noroboto, a font-based attack on DOCX.
 
-The same framing applies here, shifted from text to numbers and from DOCX to XLSX. The attack surface is the gap between what the rendering engine displays (Excel applying a format string) and what the extraction engine reads (openpyxl returning a raw value). The model is downstream of that gap. It can't detect what the pipeline doesn't surface.
+The same class applies here, shifted from text to numbers and from DOCX to XLSX. The attack surface is the gap between what the rendering engine displays (Excel applying a format string) and what the extraction engine reads (openpyxl returning a raw value). The vulnerability is in the parser, not the model. The model is downstream of that gap — it can only analyze what the extraction pipeline gives it.
 
-Both attacks exploit the same structural property: document formats that store presentation-layer information separately from content-layer data, consumed by extraction tools that read one layer and discard the other.
+The structural property is the same across all instances: document formats store presentation-layer information separately from content-layer data, and extraction tools read one layer and discard the other.
 
 ## What I tested
 
@@ -114,13 +114,12 @@ Neither attack is strictly "worse" — they target different domains with differ
 
 ## Where this fits
 
-Miller, Ng, Petrenas, and Valkov established that document formats contain multiple representation layers, and that LLM pipelines may read a different layer than the one humans see. They called this class of attack a "lexploit" and the discipline of defending against it "knowledge security."
-
-This work confirms the generality of their framework. The attack surface isn't specific to fonts or DOCX — it exists wherever a document format decouples presentation from storage, which is most of them. The specific instances so far:
+Parser differentials have been demonstrated across multiple formats and layers. The attack surface isn't specific to any one format — it exists wherever a document format decouples presentation from storage, which is most of them. The specific instances so far:
 
 | Layer | Format | Attack | First demonstrated |
 |-------|--------|--------|--------------------|
-| Font encoding | DOCX | Glyph-to-Unicode remapping | Miller et al. (2026) — noroboto |
+| Bidi overrides | Source code | Logical vs. display reordering | Boucher & Anderson (2021) |
+| Font encoding | DOCX | Glyph-to-Unicode remapping | Miller et al. (2026) |
 | Font encoding | PDF | Font data manipulation | Luo et al. (2026) |
 | Number format | XLSX | Static format string divergence | This work |
 
@@ -176,9 +175,9 @@ The gap between "here's how it works" and "here's a tool that does it to any fil
 
 ## Credits
 
-This work directly extends the lexploit framework established by Drew Miller, Iris Ng, Andrius Petrenas, and Aleks Valkov. I adopt their terminology ("lexploit," "knowledge security") with attribution and follow their testing methodology for direct comparability.
+The parser differential attack class was demonstrated by Boucher and Anderson (2021) with Trojan Source. The academic foundation for document-fidelity vulnerabilities in legal tech pipelines was established by Guha, Henderson, and Zambrano (2022). Miller, Ng, Petrenas, and Valkov (2026) applied the concept to LLM document review with noroboto, a font-based attack on DOCX. Luo et al. (2026) independently confirmed the font-based attack class in PDF. Staaldraad (2017) demonstrated field code exploitation in DOCX for malware delivery — a different application of the same OOXML features.
 
-The academic foundation for legal tech pipeline vulnerabilities was established by Guha, Henderson, and Zambrano (2022). Luo et al. (2026) independently confirmed the font-based attack class in PDF. Staaldraad (2017) demonstrated field code exploitation in DOCX for malware delivery — a different application of the same OOXML features.
+This work extends the attack class to XLSX number formats and tests it end-to-end on production LLM platforms.
 
 ## References
 
