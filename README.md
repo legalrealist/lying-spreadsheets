@@ -77,6 +77,8 @@ Two XLSX files: a clean version where raw values match the display (a real borde
 
 Nine XLSX tests, zero detections of format divergence. All three screenshot controls read the display values and rejected the company. The exploit holds across acquisition, skeptical, and neutral prompts.
 
+**Second scenario — emissions compliance:** A manufacturing facility's quarterly emissions report where all six pollutants exceed permitted limits (102-122%). The poisoned raw values show compliance (81-89%). All three platforms reported the facility as compliant. The attack generalizes beyond financial due diligence.
+
 ## Mitigation
 
 `sheetguard.py` scans for cells where the number format is a static string literal that doesn't match the raw value:
