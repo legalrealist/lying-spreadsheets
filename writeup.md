@@ -110,6 +110,7 @@ Neither attack is strictly "worse" — a font attack on a governing law clause c
 | Bidi overrides | Source code | Logical vs. display reordering | Boucher & Anderson (2021) |
 | Font encoding | DOCX | Glyph-to-Unicode remapping | Miller et al. (2026) |
 | Font encoding | PDF | Font data manipulation | Luo et al. (2026) |
+| ToUnicode CMap | PDF | Display/extraction text desynchronization | Miller et al. (2026) |
 | Number format | XLSX | Static format string divergence | This work |
 
 The pattern predicts more. Anywhere a format decouples presentation from storage — ODP/PPTX speaker notes, HTML `aria-label` vs. visible text, CSV with BOM-dependent encoding — there's a potential parser differential.
@@ -179,6 +180,7 @@ This work extends the attack class to XLSX number formats and tests it end-to-en
 ## References
 
 - Miller, Ng, Petrenas & Valkov, "Noroboto and Legal Tech's Mythos Moment," LegalQuants (May 2026)
+- Miller et al., "Noroboto and the PDF that lied twice," LegalQuants (2026)
 - Miller, "Noroboto: Lying Fonts and Mitigation in Rust," Tritium (May 2026)
 - Guha, Henderson & Zambrano, "Vulnerabilities in Discovery Tech," 35 Harv. J.L. & Tech. 581 (2022)
 - Luo, Zhang & Zhong, "Exploiting PDF Obfuscation in LLMs," IACR ePrint 2026/278
