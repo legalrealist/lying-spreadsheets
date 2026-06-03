@@ -101,7 +101,7 @@ This demonstrates two things: first, that arithmetic cross-checks are not a viab
 
 ## How this compares to fonts
 
-Miller's noroboto attack operates on the text layer: the `<w:t>` element in a DOCX contains Unicode codepoints, and the embedded font determines what those codepoints render as visually. It's clever, but it has tells — custom embedded fonts are unusual in legal documents, and Miller himself built a Rust-based detection tool that renders each glyph and OCRs the result.
+Parser differentials are not new — Boucher and Anderson demonstrated bidi-based attacks in source code in 2021, and homoglyph attacks predate that. Miller's contribution was applying the concept to LLM document review pipelines and demonstrating noroboto, a font-based attack on DOCX. His noroboto attack operates on the text layer: the `<w:t>` element contains Unicode codepoints, and the embedded font determines what those codepoints render as visually. His Rust-based detection tool is good engineering — it renders each glyph and OCRs the result. But the demo itself is a constructed scenario (swapping "Maryland" for "Delaware" in a governing law clause), and custom embedded fonts are already a known attack vector that security teams flag.
 
 Number format divergence in XLSX has a different risk profile:
 
