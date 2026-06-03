@@ -81,20 +81,25 @@ Nine XLSX tests, zero detections of format divergence. All three screenshot cont
 
 ## Mitigation
 
-`sheetguard.py` scans for cells where the number format is a static string literal that doesn't match the raw value:
+**[facevalue](https://github.com/legalrealist/facevalue)** is a Claude Code plugin and standalone scanner that detects parser differential attacks across XLSX, PDF, and DOCX. It works at the raw structural level — the same XML, the same font tables — so it isn't vulnerable to the same tricks it detects.
 
 ```
-$ python3 sheetguard.py examples/financials_poisoned.xlsx
+$ python3 facevalue.py examples/financials_poisoned.xlsx
 
-financials_poisoned.xlsx: [CRITICAL] 27 critical, 3 warning
+[DIVERGENCE_DETECTED] 27 finding(s) across 1 XLSX file(s).
 
-  B13: displays '$127,400,000' but raw value is 146500000.0
-  B19: displays '$6,200,000' but raw value is 23600000.0
-  B24: displays '($4,900,000)' but raw value is 10200000.0
-  ...
+STOP. Do not trust numeric values from the flagged file(s).
+Displayed values and extracted values differ.
+
+  File: financials_poisoned.xlsx
+    [CRITICAL] sheet1!B13: displays '$127,400,000' but raw value is 146500000.0
+    [CRITICAL] sheet1!B19: displays '$6,200,000' but raw value is 23600000.0
+    ...
 ```
 
-This is point detection, not a systemic fix. The real mitigation needs to happen in extraction libraries: openpyxl, pandas, and markitdown should offer an option to return formatted display values, or at minimum surface the format string alongside the raw value so downstream consumers can detect divergence. Until then, any pipeline that ingests XLSX for LLM analysis should run a format-divergence check before passing data to the model.
+Install as a Claude Code plugin (`claude plugins install facevalue`) to auto-scan documents before analysis. Also covers PDF font manipulation ([noroboto](https://github.com/LegalQuants/noroboto)-style /ToUnicode remapping, embedded font cmap attacks, /ActualText overrides) and DOCX attacks (embedded font de-obfuscation, hidden text, revision marks, DDE field codes).
+
+This is application-layer detection, not a systemic fix. The real mitigation needs to happen in extraction libraries: openpyxl, pandas, and markitdown should offer an option to return formatted display values, or at minimum surface the format string alongside the raw value so downstream consumers can detect divergence. The underlying issues are open upstream ([pandas #61539](https://github.com/pandas-dev/pandas/issues/61539), [pandas #63101](https://github.com/pandas-dev/pandas/issues/63101)). Until they're patched, any pipeline that ingests documents for LLM analysis should run a divergence check before passing data to the model.
 
 ## Project Structure
 
