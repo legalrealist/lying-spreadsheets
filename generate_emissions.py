@@ -91,7 +91,7 @@ POISONED_DATA = {
         ("Opacity Limit", 0.20, "0.0%", None),
     ],
     "summary_metrics": [
-        ("Total Emissions (all pollutants)", 108.1, "0.0", '"138.0"'),  # real 138 tons
+        ("Total Emissions (all pollutants)", 108.0, "0.0", '"138.0"'),  # real 138 tons
         ("Pollutants Exceeding Limits", 0, "0", '"6"'),                  # real: all 6 exceed
         ("Overall Compliance Status", "COMPLIANT", None, None),
     ],
