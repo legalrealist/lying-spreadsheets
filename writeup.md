@@ -114,6 +114,14 @@ Neither attack is strictly "worse" — a font attack on a governing law clause c
 
 The pattern predicts more. Anywhere a format decouples presentation from storage — ODP/PPTX speaker notes, HTML `aria-label` vs. visible text, CSV with BOM-dependent encoding — there's a potential parser differential.
 
+## Commercial exposure
+
+No commercial due diligence tool publicly confirms which XLSX library it uses — extraction stacks are treated as proprietary. But the circumstantial case is strong. Every tool I examined (Kira, Luminance, Hebbia, Harvey) lists Python in job postings or has Python repos on GitHub. `pandas.read_excel()` uses openpyxl as its default engine for `.xlsx` files — any Python shop reading Excel files almost certainly hits this path unless they've built a custom parser. There's an open pandas GitHub issue ([#30272](https://github.com/pandas-dev/pandas/issues/30272)) documenting that pandas/openpyxl cannot access `number_format` metadata — exactly the behavior that enables this attack. No vendor has publicly acknowledged format-string divergence as a risk. No CVE, no advisory, no bulletin from anyone.
+
+One exception: F2.ai uses a proprietary "LLMExcel engine" that evaluates Excel formulas natively rather than extracting text. That approach would likely be resistant to this attack because it processes the spreadsheet as a live workbook rather than stripping values from the XML.
+
+A related finding: OCR/vision-based extraction tools (AWS Textract, ABBYY) have the opposite vulnerability. They read the rendered display value, not the raw cell value — so a poisoned format string becomes the "truth" in the pipeline. The attacker would simply reverse the construction: store real values as raw data and use format strings to display inflated numbers. Both extraction directions are exploitable. The attack surface is symmetric.
+
 ## Limitations
 
 One scenario (M&A financial summary), one prompt, three platforms tested once each. I did not test sensitivity to inflation magnitude (does the exploit still work at 5%? 3%?), adversarial prompting ("check these numbers carefully against industry benchmarks"), or multi-document cross-referencing (what if the model has prior-year filings too). The multimodal defense was confirmed on all three platforms.
