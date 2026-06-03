@@ -55,13 +55,13 @@ I created two XLSX files: a clean version where raw values match the display (a 
 
 | Platform | Clean (real numbers) | Poisoned XLSX (inflated) | Poisoned screenshot (display) |
 |----------|---------------------|---------------------------|-------------------------------|
-| Claude | Do not pursue | Cautious hold — verify first | — |
-| ChatGPT | Unattractive / pass | Borderline positive | — |
+| Claude | Do not pursue | Cautious hold — verify first | Distressed, not attractive |
+| ChatGPT | Unattractive / pass | Borderline positive | Not attractive |
 | Gemini | Do not recommend | Conditionally recommend | Not recommended |
 
-All three platforms shifted their assessment on the poisoned file. Claude's response was the most nuanced: it confirmed the income statement "ties out cleanly," analyzed the inflated figures faithfully, but held back — citing unaudited data, negative tangible equity, and full valuation multiples. Its caution was about data provenance, not format divergence. It noted: "internal consistency in a management-prepared summary tells you it was assembled carefully — not that it's accurate."
+All three platforms shifted their assessment on the poisoned XLSX. All three rejected the company when given a screenshot of the same file. Claude's XLSX response was the most nuanced — it confirmed the income statement "ties out cleanly," analyzed the inflated figures faithfully, but held back citing unaudited data, negative tangible equity, and full valuation multiples. Its caution was about data provenance, not format divergence. It noted: "internal consistency in a management-prepared summary tells you it was assembled carefully — not that it's accurate."
 
-The screenshot column is the punchline. When I uploaded a screenshot of the poisoned spreadsheet (as rendered in Excel) to Gemini instead of the XLSX file, the model read the display values — $127.4M revenue, 4.9% EBITDA margin, ($4.9M) net loss, 8.40x D/E — and recommended against the acquisition. Same platform, same model, same prompt: XLSX upload produced "Conditionally recommend," screenshot upload produced "Not recommended." The vulnerability is in the extraction pipeline, not the model.
+The screenshot column is the punchline. Same files, same prompt — every platform flips its assessment based solely on whether it reads the XLSX through an extraction library or reads a rendered image. The vulnerability is in the extraction pipeline, not the model.
 
 ### Gemini's extraction pipeline
 
@@ -116,7 +116,7 @@ The pattern predicts more. Anywhere a format decouples presentation from storage
 
 ## Limitations
 
-One scenario (M&A financial summary), one prompt, three platforms tested once each. I did not test sensitivity to inflation magnitude (does the exploit still work at 5%? 3%?), adversarial prompting ("check these numbers carefully against industry benchmarks"), or multi-document cross-referencing (what if the model has prior-year filings too). The multimodal defense was confirmed on Gemini only.
+One scenario (M&A financial summary), one prompt, three platforms tested once each. I did not test sensitivity to inflation magnitude (does the exploit still work at 5%? 3%?), adversarial prompting ("check these numbers carefully against industry benchmarks"), or multi-document cross-referencing (what if the model has prior-year filings too). The multimodal defense was confirmed on all three platforms.
 
 ## Defenses
 
