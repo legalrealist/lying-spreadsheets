@@ -1,0 +1,17 @@
+name: lying-spreadsheets
+on: [push, pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install openpyxl lxml pandas
+      - name: clean file has no divergence
+        run: python3 sheetguard.py examples/financials_clean.xlsx 2>&1 | grep -q CLEAN
+      - name: poisoned file detected
+        run: python3 sheetguard.py examples/financials_poisoned.xlsx 2>&1 | grep -q CRITICAL
+      - name: extraction shows divergence
+        run: python3 extract_xlsx_test.py
