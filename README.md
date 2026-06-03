@@ -55,7 +55,7 @@ Excel custom number formats can display arbitrary static text regardless of the 
 
 ## Results
 
-We created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both look identical in Excel.
+Two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both look identical in Excel.
 
 **What the LLM reads vs. what the human sees:**
 

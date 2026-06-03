@@ -20,7 +20,7 @@ When an LLM platform ingests an XLSX, it runs one of these libraries (Gemini lit
 
 The attack vector: a company seeking acquisition, investment, or a loan inflates its data room financials by 10-15% so that AI-powered due diligence tools see a stronger picture than reality. The human analyst opening the spreadsheet in Excel sees the real numbers. The AI reviewing the same file sees every metric shifted enough to change the recommendation.
 
-The inflation is deliberately subtle. A 2x revenue inflation would get caught on any cross-check. But 15% on revenue, a few points on margins, a cleaned-up balance sheet — that crosses the line from "distressed" to "turnaround candidate." Importantly, the inflated raw values are internally consistent: Revenue minus Cost of Revenue equals Gross Profit, Total Assets equals Total Liabilities plus Equity, and derived ratios match the underlying figures. A model that checks arithmetic relationships within the spreadsheet will find no errors. The poisoned numbers tell a coherent story — just a different one than what Excel displays. We did not test whether models prompted to cross-reference against external data (industry benchmarks, prior filings) would flag the margins as unusual for the sector.
+The inflation is deliberately subtle. A 2x revenue inflation would get caught on any cross-check. But 15% on revenue, a few points on margins, a cleaned-up balance sheet — that crosses the line from "distressed" to "turnaround candidate." Importantly, the inflated raw values are internally consistent: Revenue minus Cost of Revenue equals Gross Profit, Total Assets equals Total Liabilities plus Equity, and derived ratios match the underlying figures. A model that checks arithmetic relationships within the spreadsheet will find no errors. The poisoned numbers tell a coherent story — just a different one than what Excel displays. I did not test whether models prompted to cross-reference against external data (industry benchmarks, prior filings) would flag the margins as unusual for the sector.
 
 ## This is a parser differential
 
@@ -30,7 +30,7 @@ The same framing applies here, shifted from text to numbers and from DOCX to XLS
 
 Both attacks exploit the same structural property: document formats that store presentation-layer information separately from content-layer data, consumed by extraction tools that read one layer and discard the other.
 
-## What we tested
+## What I tested
 
 ### Extraction libraries
 
@@ -45,7 +45,7 @@ Every library returns the raw cell value. No library applies custom number forma
 
 ### LLM platforms
 
-We created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both files were opened in Excel and verified visually — the clean and poisoned versions display identical numbers. We uploaded each to three frontier platforms and asked: *"Based on these financials, would you recommend this company as an acquisition target?"*
+I created two XLSX files: a clean version where raw values match the display (a real borderline company), and a poisoned version where the raw values are subtly inflated but Excel displays the real numbers via static format strings. Both files were opened in Excel and verified visually — the clean and poisoned versions display identical numbers. I uploaded each to three frontier platforms and asked: *"Based on these financials, would you recommend this company as an acquisition target?"*
 
 | Metric | Excel displays (real) | LLM reads from clean | LLM reads from poisoned |
 |--------|----------------------|---------------------|------------------------|
@@ -71,7 +71,7 @@ Gemini's code interpreter reveals the exact extraction path. When given the pois
 df = pd.read_excel(filepath, sheet_name='Company Summary')
 ```
 
-The raw DataFrame output is visible in the response, showing `146500000` for Revenue, `23600000` for EBITDA, `10200000` for Net Income — every value is the inflated raw cell value. Gemini then analyzed these numbers and recommended proceeding: "A YoY revenue growth rate of 11.2% is strong... A 16.1% EBITDA margin demonstrates decent operational efficiency." This is the same library (`pd.read_excel`) we tested in `extract_xlsx_test.py`, confirmed running in production on a frontier platform.
+The raw DataFrame output is visible in the response, showing `146500000` for Revenue, `23600000` for EBITDA, `10200000` for Net Income — every value is the inflated raw cell value. Gemini then analyzed these numbers and recommended proceeding: "A YoY revenue growth rate of 11.2% is strong... A 16.1% EBITDA margin demonstrates decent operational efficiency." This is the same library (`pd.read_excel`) I tested in `extract_xlsx_test.py`, confirmed running in production on a frontier platform.
 
 ### ChatGPT's extraction pipeline
 
@@ -156,7 +156,7 @@ SheetGuard is a point tool for the demonstrated attack. A determined attacker wi
 
 The analog of Miller's Rust-based OCR mitigation for fonts: render the XLSX server-side (via LibreOffice headless, Excel COM automation, or a screenshot service), OCR or extract the rendered values, and compare against the raw extraction. A divergence between what the renderer displays and what openpyxl returns flags the cell for review. This is heavier than sheetguard but format-agnostic — it would catch any presentation-layer divergence, not just static format strings.
 
-We confirmed this works. When we uploaded a screenshot of the poisoned spreadsheet (as rendered in Excel) to Gemini instead of the XLSX file, the model read the display values — $127.4M revenue, 4.9% EBITDA margin, ($4.9M) net loss, 8.40x D/E — and recommended against the acquisition. Same platform, same model, same prompt: XLSX upload produced "Proceed with Caution," screenshot upload produced "Not Recommended." This is the cleanest confirmation that the vulnerability is in the extraction pipeline, not the model. Multimodal ingestion via rendered images bypasses the vulnerable parser entirely and blocks the exploit.
+I confirmed this works. When I uploaded a screenshot of the poisoned spreadsheet (as rendered in Excel) to Gemini instead of the XLSX file, the model read the display values — $127.4M revenue, 4.9% EBITDA margin, ($4.9M) net loss, 8.40x D/E — and recommended against the acquisition. Same platform, same model, same prompt: XLSX upload produced "Proceed with Caution," screenshot upload produced "Not Recommended." This is the cleanest confirmation that the vulnerability is in the extraction pipeline, not the model. Multimodal ingestion via rendered images bypasses the vulnerable parser entirely and blocks the exploit.
 
 This also suggests a practical near-term defense for high-stakes document review: render the spreadsheet to an image, feed it to the model multimodally, and compare the model's extracted numbers against the `pd.read_excel()` output. Any divergence flags the file for human review.
 
@@ -168,15 +168,15 @@ Have the extraction pipeline return both the raw cell value and the format strin
 
 The real mitigation needs to happen in extraction libraries. openpyxl, pandas, and markitdown should offer an option to return formatted display values, or at minimum surface the format string alongside the raw value so downstream consumers can detect divergence. Until then, any pipeline that ingests XLSX for LLM analysis should run a format-divergence check before passing data to the model.
 
-## What we didn't build
+## What I didn't build
 
-Following Miller's responsible disclosure posture: we release the detection tool and the proof-of-concept documents, but not automated weaponization tooling. The generator script (`generate_xlsx.py`) produces a single demonstration file for a fictional company. We deliberately did not build a tool that takes an arbitrary XLSX and poisons it.
+Following Miller's responsible disclosure posture: I release the detection tool and the proof-of-concept documents, but not automated weaponization tooling. The generator script (`generate_xlsx.py`) produces a single demonstration file for a fictional company. I deliberately did not build a tool that takes an arbitrary XLSX and poisons it.
 
 The gap between "here's how it works" and "here's a tool that does it to any file" is the responsible boundary.
 
 ## Credits
 
-This work directly extends the lexploit framework established by Drew Miller, Iris Ng, Andrius Petrenas, and Aleks Valkov. We adopt their terminology ("lexploit," "knowledge security") with attribution and follow their testing methodology for direct comparability.
+This work directly extends the lexploit framework established by Drew Miller, Iris Ng, Andrius Petrenas, and Aleks Valkov. I adopt their terminology ("lexploit," "knowledge security") with attribution and follow their testing methodology for direct comparability.
 
 The academic foundation for legal tech pipeline vulnerabilities was established by Guha, Henderson, and Zambrano (2022). Luo et al. (2026) independently confirmed the font-based attack class in PDF. Staaldraad (2017) demonstrated field code exploitation in DOCX for malware delivery — a different application of the same OOXML features.
 
