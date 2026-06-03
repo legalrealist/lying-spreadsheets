@@ -1,5 +1,7 @@
 # Lying Spreadsheets
 
+[![CI](https://github.com/legalrealist/lying-spreadsheets/actions/workflows/ci.yml/badge.svg)](https://github.com/legalrealist/lying-spreadsheets/actions/workflows/ci.yml)
+
 XLSX number format divergence as a parser differential against LLM financial review.
 
 A company poisons its data room spreadsheet so that Excel displays the real (weak) financials while the raw cell values — which every extraction library reads — tell a subtly better story. The AI recommends proceeding. The human saw a pass. Same file.
