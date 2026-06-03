@@ -1,14 +1,12 @@
 # Lying Spreadsheets: Number Format Divergence as a Parser Differential Against LLM Financial Review
 
-## The demo
+## The attack
 
 Open `financials_poisoned.xlsx` in Excel. The spreadsheet shows a borderline healthcare company: $127M revenue, 4.9% EBITDA margins, a $4.9M net loss, 8.4x leverage.
 
 Upload the same file to Claude, ChatGPT, or Gemini. Ask whether it's a good acquisition target. The model reads different numbers: $146M revenue growing 11%, 16% EBITDA margins, $10.2M net income, 1.6x leverage. All three platforms shift their assessment — from clear rejection to qualified interest or outright recommendation.
 
 Same file. The human sees a distressed company. The model sees a turnaround. The divergence is 10-15% across metrics — large enough to flip the recommendation, small enough to survive casual cross-checking.
-
-## What's happening
 
 Excel's custom number formats allow a cell to display arbitrary text while storing a completely different value underneath. A cell containing the number `146500000` can display `$127,400,000` — the format string `"$127,400,000"` is a static literal that Excel renders regardless of the underlying value. The attacker stores subtly inflated numbers as raw values and uses static format strings to display the real figures.
 
@@ -85,36 +83,25 @@ wb.inspect({"kind":"table","range":"Company Summary!A1:B52","include":"values,fo
 
 A different parser from Gemini's `pd.read_excel()`, but the same behavior: it returns raw cell values and discards format strings. Three platforms, three different extraction pipelines (openpyxl on Claude, pandas on Gemini, `artifact_tool` on ChatGPT), all vulnerable to the same format-layer attack.
 
-### Filename detection, format blindness
+### The models tried to find it
 
-Both Claude and Gemini noticed the test file was named `financials_poisoned.xlsx`. The filename triggered deeper inspection on both platforms — exactly the behavior you'd want. Neither found anything.
+Both Claude and Gemini noticed the test file was named `financials_poisoned.xlsx`. The filename triggered deeper inspection on both platforms. Neither found anything.
 
-**Claude's inspection.** Claude ran a multi-step audit through openpyxl: checked for hidden rows and columns (none), scanned every cell for comments (none), dumped every non-empty cell with font color to detect white-text hiding or injected instructions (none found). The inspection code iterated through every cell checking `cell.font.color.rgb` and flagging anything "long or instruction-like." It was thorough, systematic, and completely blind to the attack — because openpyxl doesn't surface format strings. The format divergence lives in `xl/styles.xml`; Claude's inspection code never opened that file.
+Claude ran a multi-step audit: hidden rows and columns (none), cell comments (none), font color scan for white-text hiding (none), full arithmetic reconciliation of every line item (all tied — the inflated numbers are internally consistent). It verified the EBITDA bridge, confirmed the balance sheet identity, checked the implied 25% tax rate. The math was clean. Claude's only flags were balance sheet sub-totals with unlabeled gaps ($13.8M in assets, $6.2M in liabilities) — real observations, unrelated to the attack. After multiple rounds of prompting, Claude concluded: "I re-checked for a hidden trap and there isn't one I can find."
 
-**Gemini's inspection.** When prompted to find anomalies, Gemini re-ran the extraction — this time with `openpyxl.load_workbook(filepath, data_only=False)`, checking for "hidden comments, hidden sheets, external formula links, raw code injection." It iterated through every row printing column A and column B values. The output showed the same inflated raw values it had already analyzed. Gemini used the vulnerable parser to audit the vulnerable parser.
+Gemini re-ran the extraction with `openpyxl.load_workbook(filepath, data_only=False)`, checking for "hidden comments, hidden sheets, external formula links, raw code injection." The output showed the same inflated raw values it had already analyzed. Gemini used the vulnerable parser to audit the vulnerable parser.
 
-**Claude's arithmetic reconciliation.** Claude performed full arithmetic reconciliation of the poisoned file: verified Revenue minus Cost of Revenue equals Gross Profit, built the EBITDA bridge from operating expenses, checked that EBIT plus D&A ties to EBITDA, confirmed the balance sheet identity, recalculated every key metric from the underlying line items, verified the implied 25% tax rate, and flagged that tangible equity is negative after backing out intangibles. The income statement math checked out completely. Claude's only flags were balance sheet sub-totals not summing to stated totals ($13.8M unlabeled assets, $6.2M unlabeled liabilities) — real gaps in the management summary, unrelated to the attack. Claude held back from recommending the acquisition, but its caution was about data provenance ("unaudited, management-prepared"), negative tangible equity, and full valuation multiples — not about format divergence. It noted: "internal consistency in a management-prepared summary tells you it was assembled carefully — not that it's accurate." After multiple rounds of increasingly targeted prompting, Claude concluded: "I re-checked for a hidden trap and there isn't one I can find." It asked the user to point out what it was missing.
-
-This demonstrates two things: first, that arithmetic cross-checks are not a viable detection method — the poisoned numbers are internally consistent and tell a coherent story. Second, that the model's analytical instincts are sound but its tools are blind. Claude's caution about unaudited data and its request for verification are exactly the right professional response. The problem is that the verification it's requesting (audited financials, quality-of-earnings review) would catch the inflated numbers through external comparison — but nothing in the model's current toolkit lets it detect the format-layer divergence within the file itself.
-
-**The pattern.** Both models had the right instinct: inspect the raw data for manipulation. Both used the only tools available to them — the same extraction libraries that discard format strings. The format layer is a blind spot not because the models lack diligence, but because their inspection tools can't see it. An attacker would trivially rename the file; the models caught the metadata hint that cost nothing to remove, and missed the structural attack present in every cell they extracted. Even repeated direct prompting ("is anything wrong with this spreadsheet?") produced no detection.
+The format divergence lives in `xl/styles.xml`. Neither model's inspection code ever opened that file. The models' analytical instincts were sound — Claude noted that "internal consistency in a management-prepared summary tells you it was assembled carefully — not that it's accurate." But their tools are blind. Nothing in either model's toolkit lets it detect format-layer divergence within the file itself. Even repeated direct prompting ("is anything wrong with this spreadsheet?") produced no detection.
 
 ## How this compares to fonts
 
-Parser differentials are not new — Boucher and Anderson demonstrated bidi-based attacks in source code in 2021, and homoglyph attacks predate that. Miller's contribution was applying the concept to LLM document review pipelines and demonstrating noroboto, a font-based attack on DOCX. His noroboto attack operates on the text layer: the `<w:t>` element contains Unicode codepoints, and the embedded font determines what those codepoints render as visually. His Rust-based detection tool is good engineering — it renders each glyph and OCRs the result. But the demo itself is a constructed scenario (swapping "Maryland" for "Delaware" in a governing law clause), and custom embedded fonts are already a known attack vector that security teams flag.
+Miller's noroboto demonstrated a font-based parser differential on DOCX — custom fonts remap Unicode codepoints to different glyphs. His Rust-based detection tool is good engineering. But custom embedded fonts are already a known attack vector that security teams flag, and the demo is a constructed scenario (swapping "Maryland" for "Delaware" in a governing law clause).
 
-Number format divergence in XLSX has a different risk profile:
+Number format divergence in XLSX is harder to detect and hits a higher-stakes workflow. Custom number formats are ubiquitous — every financial spreadsheet uses them, so there's no anomaly to flag. The extraction libraries are correct by design — they return cell values, which is what they're supposed to do. The vulnerability is architectural, not a bug. And the attack targets an existing workflow where the incentive is obvious: companies inflating their own numbers to pass AI-powered financial screens.
 
-1. **Custom number formats are ubiquitous.** Every financial spreadsheet uses them. There is no anomaly to flag.
-2. **The attack targets numbers, not text.** Quantitative errors in financial due diligence can directly affect deal outcomes. The incentive structure is straightforward — a company inflating its own numbers to pass AI-powered screens.
-3. **No visual anomaly.** The spreadsheet looks perfectly normal in Excel. There's no rendering artifact, no suspicious font, no field code toggle.
-4. **The extraction behavior is correct by design.** openpyxl and pandas are doing exactly what they're supposed to do — returning cell values. The format string is presentation metadata. The libraries aren't buggy; they're faithfully implementing a reasonable interpretation of their job. The vulnerability is architectural, not a bug.
+Neither attack is strictly "worse" — a font attack on a governing law clause can change the meaning of a contract; a number format attack on a financial summary can change the outcome of a deal. What they share is the structural property: a single file, two parsers, two readings, and no indication to either consumer that the other sees something different.
 
-Neither attack is strictly "worse" — they target different domains with different consequences. A font attack on a governing law clause can change the meaning of a contract. A number format attack on a financial summary can change the outcome of a deal. Which matters more depends on the threat model. What they share is the structural property: a single file, two parsers, two readings, and no indication to either consumer that the other sees something different.
-
-## Where this fits
-
-Parser differentials have been demonstrated across multiple formats and layers. The attack surface isn't specific to any one format — it exists wherever a document format decouples presentation from storage, which is most of them. The specific instances so far:
+## Known instances
 
 | Layer | Format | Attack | First demonstrated |
 |-------|--------|--------|--------------------|
@@ -123,7 +110,11 @@ Parser differentials have been demonstrated across multiple formats and layers. 
 | Font encoding | PDF | Font data manipulation | Luo et al. (2026) |
 | Number format | XLSX | Static format string divergence | This work |
 
-The pattern predicts more instances. ODP/PPTX speaker notes vs. slide text. HTML `aria-label` vs. visible text. CSV with BOM-dependent encoding. Anywhere two consumers of the same file read different content from different layers.
+The pattern predicts more. Anywhere a format decouples presentation from storage — ODP/PPTX speaker notes, HTML `aria-label` vs. visible text, CSV with BOM-dependent encoding — there's a potential parser differential.
+
+## Limitations
+
+One scenario (M&A financial summary), one prompt, three platforms tested once each. I did not test sensitivity to inflation magnitude (does the exploit still work at 5%? 3%?), adversarial prompting ("check these numbers carefully against industry benchmarks"), or multi-document cross-referencing (what if the model has prior-year filings too). The multimodal defense was confirmed on Gemini only.
 
 ## Defenses
 
