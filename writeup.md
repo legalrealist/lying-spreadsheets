@@ -72,6 +72,18 @@ df = pd.read_excel(filepath, sheet_name='Company Summary')
 
 The raw DataFrame output is visible in the response, showing `146500000` for Revenue, `23600000` for EBITDA, `10200000` for Net Income — every value is the inflated raw cell value. Gemini then analyzed these numbers and recommended proceeding: "A YoY revenue growth rate of 11.2% is strong... A 16.1% EBITDA margin demonstrates decent operational efficiency." This is the same library (`pd.read_excel`) we tested in `extract_xlsx_test.py`, confirmed running in production on a frontier platform.
 
+### ChatGPT's extraction pipeline
+
+ChatGPT uses a proprietary extraction tool rather than pandas or openpyxl:
+
+```python
+from artifact_tool import Blob, SpreadsheetFile
+wb = SpreadsheetFile.import_xlsx(Blob.load(path))
+wb.inspect({"kind":"table","range":"Company Summary!A1:B52","include":"values,formulas"})
+```
+
+A different parser from Gemini's `pd.read_excel()`, but the same behavior: it returns raw cell values and discards format strings. Three platforms, three different extraction pipelines (openpyxl on Claude, pandas on Gemini, `artifact_tool` on ChatGPT), all vulnerable to the same format-layer attack.
+
 ### Filename detection, format blindness
 
 Both Claude and Gemini noticed the test file was named `financials_poisoned.xlsx`. The filename triggered deeper inspection on both platforms — exactly the behavior you'd want. Neither found anything.
