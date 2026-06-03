@@ -35,7 +35,7 @@ The key insight is that the attacker doesn't tamper with the document after the 
 |--------|--------|-------------------|-----------|
 | **Noroboto** (Miller et al., 2026) | DOCX | python-docx, mammoth, markitdown | Reads raw codepoints; font remaps them to different glyphs on screen |
 | **PDF font manipulation** (Luo et al., 2026) | PDF | PyMuPDF, pdfminer, pdfplumber | Reads character codes; font encoding maps them to different glyphs |
-| **Lying Spreadsheets** (this work) | XLSX | openpyxl, pandas, markitdown | Reads raw cell values; static format strings display different numbers |
+| **Lying Spreadsheets** (this work) | XLSX | openpyxl (Claude), pandas (Gemini), artifact_tool (ChatGPT) | Reads raw cell values; static format strings display different numbers |
 | **Trojan Source** (Boucher & Anderson, 2021) | Source code | GCC, Clang, rustc, javac | Reads logical character order; bidi overrides reorder displayed text |
 | **Homoglyph attacks** | URLs/text | Browsers, DNS resolvers | Reads codepoint identity; visually identical glyphs from different blocks |
 

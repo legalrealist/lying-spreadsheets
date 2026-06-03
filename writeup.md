@@ -34,13 +34,14 @@ Both attacks exploit the same structural property: document formats that store p
 
 ### Extraction libraries
 
-| Library | Returns raw value? | Applies format string? |
-|---------|-------------------|----------------------|
-| openpyxl | Yes | No |
-| pandas (`read_excel`) | Yes | No |
-| markitdown | Yes | No |
+| Library | Returns raw value? | Applies format string? | Used by |
+|---------|-------------------|----------------------|---------|
+| openpyxl | Yes | No | Claude |
+| pandas (`read_excel`) | Yes | No | Gemini |
+| `artifact_tool.SpreadsheetFile` | Yes | No | ChatGPT |
+| markitdown | Yes | No | — |
 
-Every library returns the raw cell value. No library applies custom number formats.
+Every library returns the raw cell value. No library applies custom number formats. Each platform uses a different extraction pipeline — the blind spot is architectural, not library-specific.
 
 ### LLM platforms
 
