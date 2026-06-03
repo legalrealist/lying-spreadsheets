@@ -101,6 +101,8 @@ Miller's noroboto demonstrated a font-based parser differential on DOCX — cust
 
 Number format divergence in XLSX is harder to detect and hits a higher-stakes workflow. Custom number formats are ubiquitous — every financial spreadsheet uses them, so there's no anomaly to flag. The extraction libraries are correct by design — they return cell values, which is what they're supposed to do. The vulnerability is architectural, not a bug. And the attack targets an existing workflow where the incentive is obvious: companies inflating their own numbers to pass AI-powered financial screens.
 
+There's also a detection gap. Miller's PDF extension (ToUnicode CMap desynchronization, where "$1,400,000" displays but "$400" extracts) was flagged by Grok and Claude's high-effort modes when tested across nine AI products. The XLSX number format attack was undetectable across all three platforms even after repeated direct prompting and multi-step inspection. This likely reflects two differences: font and CMap manipulations are structurally unusual (custom fonts and remapped character tables are rare in legitimate documents), while custom number formats are ubiquitous in financial spreadsheets. And the inflation magnitude matters — "$1,400,000" vs "$400" is orders of magnitude, easily caught on any cross-check; 10-15% divergence across metrics is within the range of plausible variation.
+
 Neither attack is strictly "worse" — a font attack on a governing law clause can change the meaning of a contract; a number format attack on a financial summary can change the outcome of a deal. What they share is the structural property: a single file, two parsers, two readings, and no indication to either consumer that the other sees something different.
 
 ## Known instances
