@@ -8,6 +8,10 @@ A company poisons its data room spreadsheet so that Excel displays the real (wea
 
 A [parser differential](https://trojansource.codes/) attack — the same class as Trojan Source (Boucher & Anderson, 2021) and [noroboto](https://legalquants.substack.com/p/noroboto-and-legal-techs-mythos-moment) (Miller et al., 2026) — applied to XLSX number formats and tested end-to-end on production LLM platforms.
 
+![sheetguard.py scanning the fixtures: the clean file reports [CLEAN], the poisoned file reports [CRITICAL] 27 critical / 3 warning, flagging cells like B13 that display '$127,400,000' while the raw value is 146500000.0](assets/demo.gif)
+
+*Real output of `sheetguard.py` on the bundled clean and poisoned fixtures.*
+
 ## Quick Start
 
 ```bash
