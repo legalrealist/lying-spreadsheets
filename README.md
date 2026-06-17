@@ -119,3 +119,7 @@ This is application-layer detection, not a systemic fix. The real mitigation nee
     ├── claude_new_output.md
     └── gemini_new_output.md
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
